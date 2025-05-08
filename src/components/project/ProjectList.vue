@@ -11,16 +11,25 @@ const props = defineProps<{
   projects: Project[]
   isLoading: boolean
   showFullIp: boolean
+  selectedMode: boolean
 }>()
 
 // 定义事件
 const emit = defineEmits<{
   restart: [project: Project]
+  select: [project: Project]
 }>()
 
 // 点击重启按钮
 const handleRestart = (project: Project) => {
   emit('restart', project)
+}
+
+// 选择项目
+const handleSelect = (project: Project) => {
+  if (props.selectedMode) {
+    emit('select', project)
+  }
 }
 
 // 格式化时间
@@ -104,7 +113,9 @@ const getRuntimeClass = (seconds: number) => {
         <tr 
           v-for="project in projects" 
           :key="project.id"
-          class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
+          class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 cursor-pointer"
+          :class="{ 'bg-gray-50 dark:bg-gray-700': project.selected }"
+          @click="handleSelect(project)"
         >
           <!-- 服务名称 -->
           <td class="px-6 py-4 whitespace-nowrap">
@@ -147,11 +158,18 @@ const getRuntimeClass = (seconds: number) => {
           <!-- 操作 -->
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
             <button 
+              v-if="!selectedMode"
               @click="handleRestart(project)" 
               class="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 transition-colors duration-150"
             >
               {{ t('action.restart') }}
             </button>
+            <span 
+              v-else-if="project.selected" 
+              class="text-success-500"
+            >
+              {{ t('action.selected') }}
+            </span>
           </td>
         </tr>
       </tbody>

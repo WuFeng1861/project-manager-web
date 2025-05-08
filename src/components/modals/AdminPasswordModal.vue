@@ -9,6 +9,7 @@ const { t } = useI18n()
 const props = defineProps<{
   modelValue: string
   project: Project | null
+  isDelete?: boolean
 }>()
 
 // 定义事件
@@ -88,14 +89,19 @@ onMounted(async () => {
                 id="modal-title" 
                 class="text-lg leading-6 font-medium text-gray-900 dark:text-white"
               >
-                {{ props.project ? t('modal.restartProject') : t('modal.adminPassword') }}
+                {{ 
+                  props.isDelete ? t('modal.deleteProjects') :
+                  props.project ? t('modal.restartProject') : 
+                  t('modal.adminPassword') 
+                }}
               </h3>
               
               <div class="mt-2">
                 <p class="text-sm text-gray-500 dark:text-gray-400">
-                  {{ props.project 
-                    ? t('modal.restartConfirm', { name: props.project.serviceName }) 
-                    : t('modal.enterPassword') 
+                  {{ 
+                    props.isDelete ? t('modal.deleteConfirm') :
+                    props.project ? t('modal.restartConfirm', { name: props.project.serviceName }) :
+                    t('modal.enterPassword')
                   }}
                 </p>
                 
@@ -127,7 +133,11 @@ onMounted(async () => {
             @click="handleSubmit"
             class="btn-primary w-full sm:w-auto sm:ml-3"
           >
-            {{ props.project ? t('action.restart') : t('action.confirm') }}
+            {{ 
+              props.isDelete ? t('action.delete') :
+              props.project ? t('action.restart') : 
+              t('action.confirm') 
+            }}
           </button>
           <button 
             type="button" 

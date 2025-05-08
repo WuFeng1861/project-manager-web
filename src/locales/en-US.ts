@@ -33,12 +33,17 @@ export default {
     hideIp: 'Hide Full IP',
     restart: 'Restart',
     confirm: 'Confirm',
-    cancel: 'Cancel'
+    cancel: 'Cancel',
+    delete: 'Delete',
+    select: 'Select',
+    selected: 'Selected'
   },
   modal: {
     adminPassword: 'Admin Password',
     restartProject: 'Restart Project',
+    deleteProjects: 'Delete Projects',
     restartConfirm: 'Are you sure you want to restart service {name}?',
+    deleteConfirm: 'Are you sure you want to delete the selected projects? This action cannot be undone.',
     enterPassword: 'Please enter admin password to view full IP addresses',
     password: 'Password',
     passwordPlaceholder: 'Enter admin password'
@@ -54,7 +59,8 @@ export default {
   },
   error: {
     fetchFailed: 'Failed to fetch project list',
-    restartFailed: 'Failed to restart project'
+    restartFailed: 'Failed to restart project',
+    deleteFailed: 'Failed to delete projects'
   },
   notFound: {
     title: 'Page Not Found',

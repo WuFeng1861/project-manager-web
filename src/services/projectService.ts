@@ -1,7 +1,6 @@
 import axios from 'axios'
-import type { ApiResponse, Project } from '../types/project'
+import type {ApiResponse, Project} from '../types/project';
 
-// API 基础 URL
 const API_BASE_URL = 'https://wufeng98.cn/projectManagerApi'
 
 // 创建 axios 实例
@@ -70,6 +69,30 @@ export const restartProject = async (serviceName: string, adminPassword: string)
       data: null,
       message: '重启项目失败',
       success: false
+    }
+  }
+}
+
+// 删除项目
+export const deleteProjects = async (serviceNames: string[], adminPassword: string) => {
+  try {
+    const response = await apiClient.delete(
+      `/projects`,
+      {
+        headers: {
+          'admin-password': adminPassword
+        },
+        data: serviceNames
+      }
+    )
+    return {
+      success: true,
+      data: response.data
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.response?.data?.message || '删除项目失败'
     }
   }
 }

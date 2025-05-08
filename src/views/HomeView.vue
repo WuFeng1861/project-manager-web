@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import dayjs from 'dayjs'
 import ProjectList from '../components/project/ProjectList.vue'
 import AdminPasswordModal from '../components/modals/AdminPasswordModal.vue'
-import { getAllProjects, restartProject } from '../services/projectService'
+import { getAllProjects, restartProject, deleteProjects } from '../services/projectService'
 import type { Project } from '../types/project'
 
 const { t } = useI18n()
@@ -19,6 +19,7 @@ const selectedProject = ref<Project | null>(null)
 const showFullIp = ref(false)
 const showRestartSuccess = ref(false)
 const restartMessage = ref('')
+const selectedMode = ref(false)
 
 // 获取项目列表
 const fetchProjects = async () => {
@@ -90,6 +91,61 @@ const submitAdminPassword = async () => {
   closeAdminModal()
 }
 
+// 切换选择模式
+const toggleSelectedMode = () => {
+  selectedMode.value = !selectedMode.value
+  if (!selectedMode.value) {
+    // 退出选择模式时清除所有选择
+    projects.value.forEach(project => project.selected = false)
+  }
+}
+
+// 选择项目
+const handleSelect = (project: Project) => {
+  project.selected = !project.selected
+}
+
+// 获取选中的项目
+const selectedProjects = computed(() => {
+  return projects.value.filter(project => project.selected)
+})
+
+// 删除选中的项目
+const deleteSelectedProjects = () => {
+  const selectedNames = selectedProjects.value.map(p => p.serviceName)
+  if (selectedNames.length === 0) {
+    return
+  }
+  openAdminModal(null, true)
+}
+
+// 执行删除操作
+const executeDelete = async () => {
+  const selectedNames = selectedProjects.value.map(p => p.serviceName)
+  try {
+    const response = await deleteProjects(selectedNames, adminPassword.value)
+    if (response.success) {
+      // 显示成功消息
+      restartMessage.value = t('project.deleteSuccess', { count: selectedNames.length })
+      showRestartSuccess.value = true
+      setTimeout(() => {
+        showRestartSuccess.value = false
+      }, 3000)
+      
+      // 退出选择模式
+      selectedMode.value = false
+      
+      // 刷新项目列表
+      fetchProjects()
+    } else {
+      error.value = response.message
+    }
+  } catch (err) {
+    console.error('删除项目失败:', err)
+    error.value = t('error.deleteFailed')
+  }
+}
+
 // 格式化时间
 const formatTime = (timestamp: string) => {
   return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss')
@@ -119,7 +175,36 @@ const formatRuntime = (seconds: number) => {
       </h1>
       
       <div class="flex space-x-2">
+        <!-- 选择模式按钮 -->
+        <button
+          v-if="!selectedMode"
+          @click="toggleSelectedMode"
+          class="btn-secondary"
+        >
+          {{ t('action.select') }}
+        </button>
+        
+        <!-- 删除按钮 -->
+        <button
+          v-if="selectedMode"
+          @click="deleteSelectedProjects"
+          class="btn-error"
+          :disabled="selectedProjects.length === 0"
+        >
+          {{ t('action.delete') }} ({{ selectedProjects.length }})
+        </button>
+        
+        <!-- 取消选择按钮 -->
+        <button
+          v-if="selectedMode"
+          @click="toggleSelectedMode"
+          class="btn-secondary"
+        >
+          {{ t('action.cancel') }}
+        </button>
+        
         <button 
+          v-if="!selectedMode"
           @click="fetchProjects" 
           class="btn-secondary"
           :disabled="isLoading"
@@ -129,6 +214,7 @@ const formatRuntime = (seconds: number) => {
         </button>
         
         <button 
+          v-if="!selectedMode"
           @click="openAdminModal()" 
           class="btn-primary"
         >
@@ -159,7 +245,9 @@ const formatRuntime = (seconds: number) => {
         :projects="projects" 
         :is-loading="isLoading"
         :show-full-ip="showFullIp"
+        :selected-mode="selectedMode"
         @restart="openAdminModal"
+        @select="handleSelect"
       />
     </div>
     
@@ -168,8 +256,9 @@ const formatRuntime = (seconds: number) => {
       v-if="showAdminModal"
       v-model="adminPassword"
       :project="selectedProject"
+      :is-delete="selectedMode"
       @close="closeAdminModal"
-      @submit="submitAdminPassword"
+      @submit="selectedMode ? executeDelete() : submitAdminPassword()"
     />
   </div>
 </template>

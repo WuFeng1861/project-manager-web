@@ -1,15 +1,12 @@
-// 项目信息接口
 export interface Project {
-  id: number
+  id: string
   serviceName: string
+  serviceDescription: string
   serverIp: string
   servicePort: number
-  serviceNotes: string
-  serviceRuntime: number // 运行时间（秒）
-  serviceDescription: string
-  lastRestartTime: string // ISO 8601 格式
-  createdAt: string
-  updatedAt: string
+  serviceRuntime: number
+  lastRestartTime: string
+  selected?: boolean
 }
 
 // API 响应格式
