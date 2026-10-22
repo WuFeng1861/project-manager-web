@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useThemeStore } from '../../stores/theme'
-import { useLocaleStore } from '../../stores/locale'
 import ThemeToggle from '../ui/ThemeToggle.vue'
 import LocaleSelector from '../ui/LocaleSelector.vue'
 
 const { t } = useI18n()
-const themeStore = useThemeStore()
-const localeStore = useLocaleStore()
 const mobileMenuOpen = ref(false)
 
 // 切换移动端菜单
@@ -34,6 +31,24 @@ const closeMobileMenu = () => {
               {{ t('app.title') }}
             </h1>
           </div>
+
+          <!-- 桌面端导航 -->
+          <nav class="hidden sm:ml-6 sm:flex sm:items-center sm:space-x-4">
+            <RouterLink
+              to="/"
+              exact-active-class="text-primary-600 dark:text-primary-400"
+              class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors duration-150"
+            >
+              {{ t('nav.home') }}
+            </RouterLink>
+            <RouterLink
+              to="/admin"
+              active-class="text-primary-600 dark:text-primary-400"
+              class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors duration-150"
+            >
+              {{ t('nav.admin') }}
+            </RouterLink>
+          </nav>
         </div>
 
         <!-- 控制面板按钮 - 桌面版 -->
@@ -79,7 +94,25 @@ const closeMobileMenu = () => {
       v-show="mobileMenuOpen" 
       class="sm:hidden bg-white dark:bg-gray-800 shadow-lg transition-all duration-200"
     >
-      <div class="px-2 pt-2 pb-3 space-y-1 flex flex-col items-center">
+      <div class="px-2 pt-2 pb-3 space-y-1">
+        <!-- 移动端导航 -->
+        <RouterLink
+          to="/"
+          exact-active-class="text-primary-600 dark:text-primary-400 bg-gray-100 dark:bg-gray-700"
+          class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+          @click="closeMobileMenu"
+        >
+          {{ t('nav.home') }}
+        </RouterLink>
+        <RouterLink
+          to="/admin"
+          active-class="text-primary-600 dark:text-primary-400 bg-gray-100 dark:bg-gray-700"
+          class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+          @click="closeMobileMenu"
+        >
+          {{ t('nav.admin') }}
+        </RouterLink>
+
         <!-- 控制面板 -->
         <div class="flex items-center justify-center space-x-4 w-full py-3">
           <ThemeToggle />

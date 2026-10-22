@@ -18,12 +18,18 @@ const props = defineProps<{
 // 定义事件
 const emit = defineEmits<{
   restart: [project: Project]
+  clearIp: [project: Project]
   select: [project: Project]
 }>()
 
 // 点击重启按钮
 const handleRestart = (project: Project) => {
   emit('restart', project)
+}
+
+// 清空项目 IP 记录
+const handleClearIp = (project: Project) => {
+  emit('clearIp', project)
 }
 
 // 选择项目
@@ -83,6 +89,9 @@ const getServiceStatus = (project: Project) => {
           {{ t('project.serverIp') }}
         </th>
         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+          {{ t('project.sourceIp') }}
+        </th>
+        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
           {{ t('project.port') }}
         </th>
         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -101,7 +110,7 @@ const getServiceStatus = (project: Project) => {
       <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
       <!-- 加载中状态 -->
       <tr v-if="isLoading">
-        <td colspan="6" class="px-6 py-4 whitespace-nowrap text-center text-gray-500 dark:text-gray-400">
+        <td colspan="7" class="px-6 py-4 whitespace-nowrap text-center text-gray-500 dark:text-gray-400">
           <div class="flex items-center justify-center">
             <svg class="animate-spin h-5 w-5 mr-3 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -114,7 +123,7 @@ const getServiceStatus = (project: Project) => {
 
       <!-- 空状态 -->
       <tr v-else-if="projects.length === 0">
-        <td colspan="6" class="px-6 py-4 whitespace-nowrap text-center text-gray-500 dark:text-gray-400">
+        <td colspan="7" class="px-6 py-4 whitespace-nowrap text-center text-gray-500 dark:text-gray-400">
           {{ t('project.noData') }}
         </td>
       </tr>
@@ -147,6 +156,24 @@ const getServiceStatus = (project: Project) => {
           </div>
         </td>
 
+        <!-- 来源IP -->
+        <td class="px-6 py-4 align-top">
+          <template v-if="showFullIp">
+            <div class="text-sm text-gray-900 dark:text-white font-mono">
+              {{ project.sourceIp || '—' }}
+            </div>
+            <details v-if="project.sourceIps && project.sourceIps.length" class="mt-1" @click.stop>
+              <summary class="cursor-pointer text-xs text-primary-600 dark:text-primary-400">
+                {{ t('project.ipCount', { count: project.sourceIps.length }) }}
+              </summary>
+              <ul class="mt-1 max-h-32 overflow-y-auto text-xs text-gray-500 dark:text-gray-400 font-mono">
+                <li v-for="ip in project.sourceIps" :key="ip">{{ ip }}</li>
+              </ul>
+            </details>
+          </template>
+          <span v-else class="text-sm text-gray-400 dark:text-gray-500">—</span>
+        </td>
+
         <!-- 端口 -->
         <td class="px-6 py-4 whitespace-nowrap">
           <div class="text-sm text-gray-900 dark:text-white">
@@ -175,8 +202,15 @@ const getServiceStatus = (project: Project) => {
           >
             {{ t('action.restart') }}
           </button>
+          <button
+              v-if="!selectedMode && showFullIp"
+              @click="handleClearIp(project)"
+              class="ml-3 text-error-600 hover:text-error-900 dark:text-error-400 dark:hover:text-error-300 transition-colors duration-150"
+          >
+            {{ t('action.clearIpHistory') }}
+          </button>
           <span
-              v-else-if="project.selected"
+              v-if="selectedMode && project.selected"
               class="text-success-500"
           >
               {{ t('action.selected') }}

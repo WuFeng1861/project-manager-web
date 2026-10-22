@@ -3,6 +3,8 @@ export interface Project {
   serviceName: string
   serviceDescription: string
   serverIp: string
+  sourceIp?: string
+  sourceIps?: string[]
   servicePort: number
   serviceRuntime: number
   lastRestartTime: string

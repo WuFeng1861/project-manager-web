@@ -1,5 +1,6 @@
 import axios from 'axios'
 import type {ApiResponse, Project} from '../types/project';
+import type {BlockedIp} from '../types/admin';
 
 const API_BASE_URL = 'https://wufeng98.cn/projectManagerApi'
 
@@ -73,6 +74,31 @@ export const restartProject = async (serviceName: string, adminPassword: string)
   }
 }
 
+// 清空项目累计的 IP 记录
+export const clearIpHistory = async (serviceName: string, adminPassword: string): Promise<ApiResponse<any>> => {
+  try {
+    const response = await apiClient.delete(`/projects/${encodeURIComponent(serviceName)}/ip-history`, {
+      headers: {
+        'admin-password': adminPassword
+      }
+    })
+    return response.data
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        return error.response.data as ApiResponse<any>
+      }
+    }
+
+    return {
+      code: 500,
+      data: null,
+      message: '清空 IP 记录失败',
+      success: false
+    }
+  }
+}
+
 // 删除项目
 export const deleteProjects = async (serviceNames: string[], adminPassword: string) => {
   try {
@@ -93,6 +119,52 @@ export const deleteProjects = async (serviceNames: string[], adminPassword: stri
     return {
       success: false,
       message: error.response?.data?.message || '删除项目失败'
+    }
+  }
+}
+
+// 获取当前生效的 IP 黑名单
+export const getBlockedIps = async (adminPassword: string): Promise<ApiResponse<BlockedIp[]>> => {
+  try {
+    const response = await apiClient.get('/projects/blocked-ips', {
+      headers: {
+        'admin-password': adminPassword
+      }
+    })
+    return response.data
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      return error.response.data as ApiResponse<BlockedIp[]>
+    }
+
+    return {
+      code: 500,
+      data: [],
+      message: '获取黑名单失败',
+      success: false
+    }
+  }
+}
+
+// 解除指定 IP 的黑名单
+export const unblockIp = async (ip: string, adminPassword: string): Promise<ApiResponse<any>> => {
+  try {
+    const response = await apiClient.delete(`/projects/blocked-ips/${encodeURIComponent(ip)}`, {
+      headers: {
+        'admin-password': adminPassword
+      }
+    })
+    return response.data
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      return error.response.data as ApiResponse<any>
+    }
+
+    return {
+      code: 500,
+      data: null,
+      message: '解除黑名单失败',
+      success: false
     }
   }
 }

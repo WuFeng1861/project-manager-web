@@ -4,10 +4,12 @@ import { useI18n } from 'vue-i18n'
 import dayjs from 'dayjs'
 import ProjectList from '../components/project/ProjectList.vue'
 import AdminPasswordModal from '../components/modals/AdminPasswordModal.vue'
-import { getAllProjects, restartProject, deleteProjects } from '../services/projectService'
+import { getAllProjects, restartProject, deleteProjects, clearIpHistory } from '../services/projectService'
 import type { Project } from '../types/project'
 
 const { t } = useI18n()
+
+type ModalAction = 'viewIp' | 'restart' | 'delete' | 'clearIp'
 
 // 状态
 const projects = ref<Project[]>([])
@@ -16,6 +18,7 @@ const error = ref('')
 const showAdminModal = ref(false)
 const adminPassword = ref('')
 const selectedProject = ref<Project | null>(null)
+const modalAction = ref<ModalAction>('viewIp')
 const showFullIp = ref(false)
 const showRestartSuccess = ref(false)
 const restartMessage = ref('')
@@ -47,8 +50,9 @@ onMounted(() => {
 })
 
 // 显示管理员密码输入框
-const openAdminModal = (project: Project | null = null) => {
+const openAdminModal = (project: Project | null = null, action: ModalAction = 'restart') => {
   selectedProject.value = project
+  modalAction.value = action
   adminPassword.value = ''
   showAdminModal.value = true
 }
@@ -60,7 +64,7 @@ const closeAdminModal = () => {
 
 // 提交管理员密码
 const submitAdminPassword = async () => {
-  if (selectedProject.value) {
+  if (modalAction.value === 'restart' && selectedProject.value) {
     // 重启项目
     try {
       const response = await restartProject(selectedProject.value.serviceName, adminPassword.value)
@@ -81,6 +85,10 @@ const submitAdminPassword = async () => {
       console.error('重启项目失败:', err)
       error.value = t('error.restartFailed')
     }
+  } else if (modalAction.value === 'delete') {
+    await executeDelete()
+  } else if (modalAction.value === 'clearIp' && selectedProject.value) {
+    await executeClearIp()
   } else {
     // 查看完整 IP
     showFullIp.value = true
@@ -116,7 +124,7 @@ const deleteSelectedProjects = () => {
   if (selectedNames.length === 0) {
     return
   }
-  openAdminModal(null, true)
+  openAdminModal(null, 'delete')
 }
 
 // 执行删除操作
@@ -143,6 +151,31 @@ const executeDelete = async () => {
   } catch (err) {
     console.error('删除项目失败:', err)
     error.value = t('error.deleteFailed')
+  }
+}
+
+// 清空项目累计 IP 记录
+const executeClearIp = async () => {
+  const project = selectedProject.value
+  if (!project) return
+
+  try {
+    const response = await clearIpHistory(project.serviceName, adminPassword.value)
+    if (response.success) {
+      restartMessage.value = t('project.clearIpSuccess', { name: project.serviceName })
+      showRestartSuccess.value = true
+      setTimeout(() => {
+        showRestartSuccess.value = false
+      }, 3000)
+
+      // 刷新项目列表
+      fetchProjects()
+    } else {
+      error.value = response.message
+    }
+  } catch (err) {
+    console.error('清空 IP 记录失败:', err)
+    error.value = t('error.clearIpFailed')
   }
 }
 
@@ -215,7 +248,7 @@ const formatRuntime = (seconds: number) => {
         
         <button 
           v-if="!selectedMode"
-          @click="openAdminModal()" 
+          @click="openAdminModal(null, 'viewIp')" 
           class="btn-primary"
         >
           {{ showFullIp ? t('action.hideIp') : t('action.showIp') }}
@@ -246,7 +279,8 @@ const formatRuntime = (seconds: number) => {
         :is-loading="isLoading"
         :show-full-ip="showFullIp"
         :selected-mode="selectedMode"
-        @restart="openAdminModal"
+        @restart="(project) => openAdminModal(project, 'restart')"
+        @clear-ip="(project) => openAdminModal(project, 'clearIp')"
         @select="handleSelect"
       />
     </div>
@@ -256,9 +290,10 @@ const formatRuntime = (seconds: number) => {
       v-if="showAdminModal"
       v-model="adminPassword"
       :project="selectedProject"
-      :is-delete="selectedMode"
+      :is-delete="modalAction === 'delete'"
+      :is-clear-ip="modalAction === 'clearIp'"
       @close="closeAdminModal"
-      @submit="selectedMode ? executeDelete() : submitAdminPassword()"
+      @submit="submitAdminPassword"
     />
   </div>
 </template>

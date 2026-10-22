@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { computed, ref, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Project } from '../../types/project'
 
@@ -10,7 +10,30 @@ const props = defineProps<{
   modelValue: string
   project: Project | null
   isDelete?: boolean
+  isClearIp?: boolean
 }>()
+
+// 按操作类型计算弹窗标题、说明和确认按钮文案
+const modalTitle = computed(() => {
+  if (props.isDelete) return t('modal.deleteProjects')
+  if (props.isClearIp) return t('modal.clearIpHistory')
+  if (props.project) return t('modal.restartProject')
+  return t('modal.adminPassword')
+})
+
+const modalDescription = computed(() => {
+  if (props.isDelete) return t('modal.deleteConfirm')
+  if (props.isClearIp) return t('modal.clearIpConfirm', { name: props.project?.serviceName })
+  if (props.project) return t('modal.restartConfirm', { name: props.project.serviceName })
+  return t('modal.enterPassword')
+})
+
+const modalConfirmText = computed(() => {
+  if (props.isDelete) return t('action.delete')
+  if (props.isClearIp) return t('action.clearIpHistory')
+  if (props.project) return t('action.restart')
+  return t('action.confirm')
+})
 
 // 定义事件
 const emit = defineEmits<{
@@ -89,20 +112,12 @@ onMounted(async () => {
                 id="modal-title" 
                 class="text-lg leading-6 font-medium text-gray-900 dark:text-white"
               >
-                {{ 
-                  props.isDelete ? t('modal.deleteProjects') :
-                  props.project ? t('modal.restartProject') : 
-                  t('modal.adminPassword') 
-                }}
+                {{ modalTitle }}
               </h3>
               
               <div class="mt-2">
                 <p class="text-sm text-gray-500 dark:text-gray-400">
-                  {{ 
-                    props.isDelete ? t('modal.deleteConfirm') :
-                    props.project ? t('modal.restartConfirm', { name: props.project.serviceName }) :
-                    t('modal.enterPassword')
-                  }}
+                  {{ modalDescription }}
                 </p>
                 
                 <!-- 密码输入框 -->
@@ -133,11 +148,7 @@ onMounted(async () => {
             @click="handleSubmit"
             class="btn-primary w-full sm:w-auto sm:ml-3"
           >
-            {{ 
-              props.isDelete ? t('action.delete') :
-              props.project ? t('action.restart') : 
-              t('action.confirm') 
-            }}
+            {{ modalConfirmText }}
           </button>
           <button 
             type="button" 
