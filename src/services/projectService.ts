@@ -146,6 +146,42 @@ export const getBlockedIps = async (adminPassword: string): Promise<ApiResponse<
   }
 }
 
+// 手动将 IP 加入黑名单
+export const blockIp = async (
+  ip: string,
+  durationHours: number | undefined,
+  reason: string,
+  adminPassword: string
+): Promise<ApiResponse<any>> => {
+  const payload: { ip: string; durationHours?: number; reason?: string } = { ip }
+  if (durationHours && durationHours > 0) {
+    payload.durationHours = durationHours
+  }
+  if (reason.trim()) {
+    payload.reason = reason.trim()
+  }
+
+  try {
+    const response = await apiClient.post('/projects/blocked-ips', payload, {
+      headers: {
+        'admin-password': adminPassword
+      }
+    })
+    return response.data
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      return error.response.data as ApiResponse<any>
+    }
+
+    return {
+      code: 500,
+      data: null,
+      message: '加入黑名单失败',
+      success: false
+    }
+  }
+}
+
 // 解除指定 IP 的黑名单
 export const unblockIp = async (ip: string, adminPassword: string): Promise<ApiResponse<any>> => {
   try {

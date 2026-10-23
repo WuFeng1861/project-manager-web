@@ -2,7 +2,7 @@
 import { onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import dayjs from 'dayjs'
-import { getBlockedIps, unblockIp } from '../services/projectService'
+import { blockIp, getBlockedIps, unblockIp } from '../services/projectService'
 import type { BlockedIp } from '../types/admin'
 
 const { t } = useI18n()
@@ -16,6 +16,12 @@ const error = ref('')
 const successMessage = ref('')
 const blockedIps = ref<BlockedIp[]>([])
 const pendingUnblock = ref<BlockedIp | null>(null)
+
+// 手动加入黑名单表单
+const newIp = ref('')
+const newDurationHours = ref<number | string>('')
+const newReason = ref('')
+const isBlocking = ref(false)
 
 // 用于刷新剩余时间
 const now = ref(Date.now())
@@ -72,6 +78,53 @@ const refresh = async () => {
     error.value = t('admin.loadFailed')
   } finally {
     isLoading.value = false
+  }
+}
+
+// 手动将 IP 加入黑名单
+const handleBlockIp = async () => {
+  const ip = newIp.value.trim()
+  if (!ip) {
+    error.value = t('admin.ipRequired')
+    return
+  }
+
+  let durationHours: number | undefined
+  // type="number" 的 v-model 会自动转成数字，这里统一转字符串处理
+  if (String(newDurationHours.value ?? '').trim()) {
+    durationHours = Number(newDurationHours.value)
+    if (!Number.isFinite(durationHours) || durationHours <= 0) {
+      error.value = t('admin.invalidDuration')
+      return
+    }
+  }
+
+  isBlocking.value = true
+  error.value = ''
+
+  try {
+    const response = await blockIp(ip, durationHours, newReason.value, adminPassword.value)
+    if (response.success) {
+      successMessage.value = t('admin.blockSuccess', { ip })
+      setTimeout(() => {
+        successMessage.value = ''
+      }, 3000)
+
+      newIp.value = ''
+      newDurationHours.value = ''
+      newReason.value = ''
+      await refresh()
+    } else {
+      error.value = isAuthError(response.code) ? t('admin.authFailed') : (response.message || t('admin.blockFailed'))
+      if (isAuthError(response.code)) {
+        authenticated.value = false
+      }
+    }
+  } catch (err) {
+    console.error('加入黑名单失败:', err)
+    error.value = t('admin.blockFailed')
+  } finally {
+    isBlocking.value = false
   }
 }
 
@@ -209,6 +262,65 @@ const isExpired = (blockedUntil: string) => {
       <div v-if="error" class="mb-4 bg-error-50 border-l-4 border-error-500 p-4 text-error-700">
         <p>{{ error }}</p>
       </div>
+
+      <!-- 手动加入黑名单 -->
+      <form class="card p-4 mb-6" @submit.prevent="handleBlockIp">
+        <h2 class="text-lg font-medium text-gray-900 dark:text-white">
+          {{ t('admin.blockTitle') }}
+        </h2>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          {{ t('admin.blockDescription') }}
+        </p>
+
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+          <div>
+            <label for="block-ip" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {{ t('admin.ip') }}
+            </label>
+            <input
+              id="block-ip"
+              v-model="newIp"
+              type="text"
+              class="input mt-1 block w-full"
+              :placeholder="t('admin.ipPlaceholder')"
+            />
+          </div>
+
+          <div>
+            <label for="block-duration" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {{ t('admin.durationHours') }}
+            </label>
+            <input
+              id="block-duration"
+              v-model="newDurationHours"
+              type="number"
+              min="1"
+              step="1"
+              class="input mt-1 block w-full"
+              :placeholder="t('admin.durationPlaceholder')"
+            />
+          </div>
+
+          <div>
+            <label for="block-reason" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {{ t('admin.reason') }}
+            </label>
+            <input
+              id="block-reason"
+              v-model="newReason"
+              type="text"
+              class="input mt-1 block w-full"
+              :placeholder="t('admin.reasonPlaceholder')"
+            />
+          </div>
+
+          <div>
+            <button type="submit" class="btn-primary w-full" :disabled="isBlocking">
+              {{ isBlocking ? t('state.loading') : t('admin.addToBlocklist') }}
+            </button>
+          </div>
+        </div>
+      </form>
 
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden transition-colors duration-200">
         <div class="overflow-x-auto">
